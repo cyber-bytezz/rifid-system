@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RFID Attendance System</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="sidebar">
+            <div class="logo">
+                <i class="fas fa-id-card"></i>
+                <h2>RFID System</h2>
+            </div>
+            <ul class="nav-links">
+                <li class="active" data-page="dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</li>
+                <li data-page="students"><i class="fas fa-user-graduate"></i> Students</li>
+                <li data-page="attendance"><i class="fas fa-clipboard-list"></i> Attendance Logs</li>
+                <li data-page="export"><i class="fas fa-file-export"></i> Export</li>
+            </ul>
+        </nav>
+        
+        <main class="content">
+            <header>
+                <h1>RFID Attendance Dashboard</h1>
+                <div class="header-right">
+                    <div class="date-time">
+                        <span id="current-date"></span>
+                        <span id="current-time"></span>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Dashboard Page -->
+            <section id="dashboard" class="page active">
+                <div class="stats-cards">
+                    <div class="card">
+                        <div class="card-content">
+                            <h3>Total Students</h3>
+                            <p id="total-students">-</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-content">
+                            <h3>Present Today</h3>
+                            <p id="present-today">-</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="fas fa-user-check"></i>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-content">
+                            <h3>Attendance Rate</h3>
+                            <p id="attendance-rate">-</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-content">
+                            <h3>Last Scan</h3>
+                            <p id="last-scan">-</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="dashboard-content">
+                    <div class="today-attendance">
+                        <div class="section-header">
+                            <h2>Today's Attendance</h2>
+                            <span id="refresh-timer">Auto refresh in 10s</span>
+                        </div>
+                        <div class="table-wrapper">
+                            <table id="today-attendance-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Reg No</th>
+                                        <th>Section</th>
+                                        <th>Year</th>
+                                        <th>Department</th>
+                                        <th>Time</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="today-attendance-body">
+                                    <!-- Data will be loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="charts-container">
+                        <div class="chart-card">
+                            <h3>Department Distribution</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="department-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <h3>Daily Attendance</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="attendance-trend-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Students Page -->
+            <section id="students" class="page">
+                <div class="section-header">
+                    <h2>Student Registry</h2>
+                    <div class="header-actions">
+                        <button id="register-student-btn" class="btn-primary">
+                            <i class="fas fa-user-plus"></i> Register New Student
+                        </button>
+                    </div>
+                </div>
+                <div class="filter-bar">
+                    <div class="filter-controls">
+                        <select id="year-filter">
+                            <option value="">All Years</option>
+                            <option value="1">1st Year</option>
+                            <option value="2">2nd Year</option>
+                            <option value="3">3rd Year</option>
+                            <option value="4">4th Year</option>
+                        </select>
+                        <select id="section-filter">
+                            <option value="">All Sections</option>
+                            <option value="A">Section A</option>
+                            <option value="B">Section B</option>
+                            <option value="C">Section C</option>
+                        </select>
+                        <input type="text" id="student-search" placeholder="Search by name or reg no...">
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table id="students-table">
+                        <thead>
+                            <tr>
+                                <th>RFID UID</th>
+                                <th>Name</th>
+                                <th>Reg No</th>
+                                <th>Department</th>
+                                <th>Year</th>
+                                <th>Section</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="students-table-body">
+                            <!-- Data will be loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            
+            <!-- Attendance Logs Page -->
+            <section id="attendance" class="page">
+                <div class="section-header">
+                    <h2>Attendance Logs</h2>
+                    <div class="filter-controls">
+                        <input type="date" id="date-filter">
+                        <select id="log-year-filter">
+                            <option value="">All Years</option>
+                            <option value="1">1st Year</option>
+                            <option value="2">2nd Year</option>
+                            <option value="3">3rd Year</option>
+                            <option value="4">4th Year</option>
+                        </select>
+                        <select id="log-section-filter">
+                            <option value="">All Sections</option>
+                            <option value="A">Section A</option>
+                            <option value="B">Section B</option>
+                            <option value="C">Section C</option>
+                        </select>
+                        <input type="text" id="reg-no-search" placeholder="Search by reg no...">
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table id="attendance-logs-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Reg No</th>
+                                <th>Department</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendance-logs-body">
+                            <!-- Data will be loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination">
+                    <button id="prev-page" disabled><i class="fas fa-chevron-left"></i> Previous</button>
+                    <span id="page-info">Page 1 of 1</span>
+                    <button id="next-page" disabled>Next <i class="fas fa-chevron-right"></i></button>
+                </div>
+            </section>
+            
+            <!-- Export Page -->
+            <section id="export" class="page">
+                <div class="export-container">
+                    <h2>Export Attendance Data</h2>
+                    <div class="export-options">
+                        <div class="export-option">
+                            <h3>Date Range Export</h3>
+                            <div class="date-range">
+                                <div class="date-input">
+                                    <label for="start-date">Start Date:</label>
+                                    <input type="date" id="start-date">
+                                </div>
+                                <div class="date-input">
+                                    <label for="end-date">End Date:</label>
+                                    <input type="date" id="end-date">
+                                </div>
+                            </div>
+                            <button id="export-date-range" class="btn-export">
+                                <i class="fas fa-file-csv"></i> Export CSV
+                            </button>
+                        </div>
+                        
+                        <div class="export-option">
+                            <h3>Full Export</h3>
+                            <p>Export all attendance records</p>
+                            <button id="export-all" class="btn-export">
+                                <i class="fas fa-file-csv"></i> Export All Data
+                            </button>
+                        </div>
+                    </div>
+                    <div class="export-message" id="export-message"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <div id="notification" class="notification">
+        <div class="notification-content">
+            <i class="fas fa-bell"></i>
+            <span id="notification-message"></span>
+        </div>
+    </div>
+    
+    <!-- Student Registration Modal -->
+    <div id="registration-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Register New Student</h3>
+                <span class="close-modal" data-modal="registration-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="student-registration-form">
+                    <div class="form-group">
+                        <label for="reg-uid">RFID UID:</label>
+                        <input type="text" id="reg-uid" name="uid" required>
+                        <small>RFID card number (scan or enter manually)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-name">Full Name:</label>
+                        <input type="text" id="reg-name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-reg-no">Register Number:</label>
+                        <input type="text" id="reg-reg-no" name="reg_no" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-department">Department:</label>
+                        <input type="text" id="reg-department" name="department" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-year">Year:</label>
+                        <select id="reg-year" name="year" required>
+                            <option value="">Select Year</option>
+                            <option value="1">1st Year</option>
+                            <option value="2">2nd Year</option>
+                            <option value="3">3rd Year</option>
+                            <option value="4">4th Year</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-section">Section:</label>
+                        <input type="text" id="reg-section" name="section" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="cancel-registration" class="btn-cancel" data-modal="registration-modal">Cancel</button>
+                <button id="submit-registration" class="btn-primary">Register Student</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Student Details Modal -->
+    <div id="student-details-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Student Details</h3>
+                <span class="close-modal" data-modal="student-details-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="student-info">
+                    <div class="student-card">
+                        <div class="student-header">
+                            <h4 id="detail-name">Student Name</h4>
+                            <span id="detail-reg-no">Reg No: XXX</span>
+                        </div>
+                        <div class="student-details">
+                            <div class="detail-item">
+                                <span class="detail-label">RFID UID:</span>
+                                <span id="detail-uid" class="detail-value">XXX</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Department:</span>
+                                <span id="detail-department" class="detail-value">XXX</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Year:</span>
+                                <span id="detail-year" class="detail-value">XXX</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Section:</span>
+                                <span id="detail-section" class="detail-value">XXX</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" data-modal="student-details-modal">Close</button>
+                <button id="delete-from-details" class="btn-danger">Delete Student</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
