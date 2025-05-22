@@ -14,7 +14,7 @@
 
 // ======= Global Configuration =======
 const API_BASE_URL = 'http://192.168.21.201:8000';
-const REFRESH_INTERVAL = 10000; // 10 seconds
+const REFRESH_INTERVAL = 5000; // 10 seconds
 
 // ======= Global State =======
 let studentsData = [];
@@ -511,6 +511,37 @@ function renderStudentsTable(data) {
                 (student.reg_no && student.reg_no.toLowerCase().includes(searchTerm)));
     });
     
+    // Add table style for avatar column if not already added
+    if (!document.getElementById('student-avatar-styles')) {
+        const style = document.createElement('style');
+        style.id = 'student-avatar-styles';
+        style.textContent = `
+            .student-avatar {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                margin-right: 10px;
+                vertical-align: middle;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                background-color: #4361ee;
+                color: white;
+                font-weight: bold;
+                font-size: 18px;
+            }
+            .student-name-cell {
+                display: flex;
+                align-items: center;
+            }
+            .name-text {
+                display: inline-block;
+                vertical-align: middle;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
     if (filteredData.length === 0) {
         const emptyRow = document.createElement('tr');
         emptyRow.innerHTML = `<td colspan="7" style="text-align: center;">No students found</td>`;
@@ -519,10 +550,26 @@ function renderStudentsTable(data) {
     }
     
     filteredData.forEach(student => {
+        // Create avatar with first letter of student's name
+        const firstLetter = student.name ? student.name.charAt(0).toUpperCase() : '?';
+        
+        // Set a consistent background color based on the name
+        let avatarBg = '#4361ee';
+        if (student.name) {
+            const colorIndex = student.name.charCodeAt(0) % 5;
+            const colors = ['#4361ee', '#3a0ca3', '#f72585', '#7209b7', '#4cc9f0'];
+            avatarBg = colors[colorIndex];
+        }
+        
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${student.uid}</td>
-            <td>${student.name}</td>
+            <td>
+                <div class="student-name-cell">
+                    <div class="student-avatar" style="background-color: ${avatarBg};">${firstLetter}</div>
+                    <span class="name-text">${student.name}</span>
+                </div>
+            </td>
             <td>${student.reg_no || 'N/A'}</td>
             <td>${student.department || 'N/A'}</td>
             <td>${student.year || 'N/A'}</td>
@@ -716,9 +763,6 @@ function setupExportButtons() {
  * Handles attendance data export
  */
 function exportAttendance(startDate = null, endDate = null) {
-    // Display message
-    showExportMessage('To export data, please run export_attendance.py on the Raspberry Pi', true);
-    
     // Create a filtered data set based on date range
     let exportData = [...attendanceData];
     
@@ -728,17 +772,232 @@ function exportAttendance(startDate = null, endDate = null) {
         });
     }
     
-    // Since we don't have an export API endpoint, we'll just show a success message
-    showNotification(`Export prepared with ${exportData.length} records`);
+    // Create or show the export modal with record count
+    showExportModal(exportData.length, startDate, endDate, exportData);
 }
 
 /**
  * Shows export message
  */
 function showExportMessage(message, isSuccess) {
-    const messageElement = document.getElementById('export-message');
-    messageElement.textContent = message;
-    messageElement.style.color = isSuccess ? 'var(--primary-color)' : 'var(--danger-color)';
+    const container = document.getElementById('export-message');
+    container.textContent = message;
+    container.className = isSuccess ? 'success' : 'error';
+    container.style.display = 'block';
+}
+
+/**
+ * Shows export modal with record count and details
+ * @param {number} recordCount - Number of records to export
+ * @param {string} startDate - Start date for filtered export
+ * @param {string} endDate - End date for filtered export
+ * @param {Array} exportData - The data to be exported
+ */
+function showExportModal(recordCount, startDate = null, endDate = null, exportData = []) {
+    // Create modal if it doesn't exist
+    if (!document.getElementById('export-modal')) {
+        const modal = document.createElement('div');
+        modal.id = 'export-modal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-file-export"></i> Export Attendance Data</h3>
+                    <button type="button" class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="export-info">
+                        <div class="record-count">
+                            <div class="count-circle"><span id="export-record-count">0</span></div>
+                            <p>Records Ready for Export</p>
+                        </div>
+                        <div class="export-details">
+                            <p><strong>Date Range:</strong> <span id="export-date-range-text">All Available Data</span></p>
+                            <p><strong>Export Format:</strong> CSV</p>
+                            <p id="export-instruction">To export data, please run <code>export_attendance.py</code> on the Raspberry Pi.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="cancel-export" class="btn-cancel"><i class="fas fa-times"></i> Cancel</button>
+                    <button id="confirm-export" class="btn-primary"><i class="fas fa-download"></i> Prepare Export</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Add style for the new elements
+        const style = document.createElement('style');
+        style.textContent = `
+            .export-info {
+                display: flex;
+                align-items: center;
+                margin-bottom: 20px;
+            }
+            .record-count {
+                text-align: center;
+                margin-right: 20px;
+            }
+            .count-circle {
+                width: 100px;
+                height: 100px;
+                border-radius: 50%;
+                background-color: #4361ee;
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 10px;
+                font-size: 2rem;
+                font-weight: bold;
+            }
+            .export-details {
+                flex: 1;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Update modal content
+    document.getElementById('export-record-count').textContent = recordCount;
+    
+    // Update date range text
+    const dateRangeText = document.getElementById('export-date-range-text');
+    if (startDate && endDate) {
+        const formattedStartDate = new Date(startDate).toLocaleDateString();
+        const formattedEndDate = new Date(endDate).toLocaleDateString();
+        dateRangeText.textContent = `${formattedStartDate} to ${formattedEndDate}`;
+    } else {
+        dateRangeText.textContent = 'All Available Data';
+    }
+    
+    // Update export instruction text
+    document.getElementById('export-instruction').textContent = 'Click "Prepare Export" to download the data as a CSV file.'
+    
+    // Set up event listeners
+    const modal = document.getElementById('export-modal');
+    const closeButtons = modal.querySelectorAll('.close-modal, #cancel-export');
+    
+    closeButtons.forEach(button => {
+        const newButton = button.cloneNode(true);
+        button.parentNode.replaceChild(newButton, button);
+        newButton.addEventListener('click', () => {
+            closeModal('export-modal');
+        });
+    });
+    
+    // Set up confirm button
+    const confirmButton = document.getElementById('confirm-export');
+    const newConfirmButton = confirmButton.cloneNode(true);
+    confirmButton.parentNode.replaceChild(newConfirmButton, confirmButton);
+    
+    newConfirmButton.addEventListener('click', () => {
+        // Generate and download CSV file
+        downloadCSV(exportData, startDate, endDate);
+        
+        // Show notification
+        if (typeof showEnhancedNotification === 'function') {
+            showEnhancedNotification(`Downloaded ${recordCount} records`, 'success', 'Export Complete');
+        } else {
+            showNotification(`Downloaded ${recordCount} records`);
+        }
+        
+        // Close the modal
+        closeModal('export-modal');
+    });
+    
+    // Open the modal
+    openModal('export-modal');
+}
+
+/**
+ * Generates and downloads CSV file from attendance data
+ * @param {Array} data - The attendance data to export
+ * @param {string} startDate - Start date for filtered export (optional)
+ * @param {string} endDate - End date for filtered export (optional)
+ */
+function downloadCSV(data, startDate = null, endDate = null) {
+    // CSV Header
+    let csvContent = 'UID,Name,Date,Time,Status\n';
+    
+    // Add each record to CSV
+    data.forEach(record => {
+        try {
+            // Get base data (these should always be available)
+            const uid = record.uid || '';
+            const name = record.name || '';
+            const status = record.status || '';
+            
+            // Try to format date and time, with fallbacks if invalid
+            let date = '';
+            let time = '';
+            
+            // Check if timestamp exists and is valid
+            if (record.timestamp) {
+                try {
+                    const timestamp = new Date(record.timestamp);
+                    // Test if the date is valid before using toISOString
+                    if (!isNaN(timestamp.getTime())) {
+                        date = timestamp.toISOString().split('T')[0];
+                        time = timestamp.toTimeString().split(' ')[0];
+                    } else {
+                        // If date parsing failed, use raw data if available
+                        date = record.date || '';
+                        time = record.time || '';
+                    }
+                } catch (e) {
+                    // If date processing fails, use raw date/time if available
+                    date = record.date || '';
+                    time = record.time || '';
+                }
+            } else if (record.date) {
+                // If no timestamp but we have date field
+                date = record.date;
+                time = record.time || '';
+            }
+            
+            // Create CSV row (properly escaped)
+            const row = [
+                uid,
+                `"${name.replace(/"/g, '""')}"`,  // Escape quotes in names
+                date,
+                time,
+                status
+            ];
+            
+            csvContent += row.join(',') + '\n';
+        } catch (error) {
+            console.error('Error processing record for CSV:', error, record);
+            // Skip this record if it causes an error
+        }
+    });
+    
+    // Create a blob with the CSV data
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    
+    // Create filename based on date range
+    let filename = 'attendance';
+    if (startDate && endDate) {
+        const start = startDate.replace(/-/g, '');
+        const end = endDate.replace(/-/g, '');
+        filename += `_${start}_to_${end}`;
+    } else {
+        const now = new Date();
+        filename += `_full_${now.toISOString().split('T')[0].replace(/-/g, '')}`;
+    }
+    filename += '.csv';
+    
+    // Create download link and trigger download
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 /**
@@ -786,8 +1045,21 @@ function updateRefreshCountdown(seconds) {
 
 /**
  * Shows a notification toast
+ * This is the original notification system that has been enhanced
+ * with a more visually appealing version in animations.js
  */
 function showNotification(message, isError = false) {
+    // Check if enhanced notification exists and use it instead
+    if (typeof showEnhancedNotification === 'function') {
+        // Use the enhanced notification system
+        showEnhancedNotification(
+            message,
+            isError ? 'error' : 'success'
+        );
+        return;
+    }
+    
+    // Fall back to the original notification if enhanced is not available
     const notification = document.getElementById('notification');
     const messageElement = document.getElementById('notification-message');
     
@@ -831,6 +1103,103 @@ function setupModalControls() {
         const name = document.getElementById('detail-name').textContent;
         closeModal('student-details-modal');
         confirmDeleteStudent(uid, name);
+    });
+}
+
+/**
+ * Create the student details modal
+ */
+function createStudentDetailsModal() {
+    const modal = document.createElement('div');
+    modal.id = 'student-details-modal';
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-graduate"></i> Student Details</h3>
+                <button type="button" class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="student-profile">
+                    <div class="student-image-container">
+                        <img id="student-profile-image" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ccc' d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/%3E%3C/svg%3E" alt="Student profile picture">
+                        <div id="student-initials-avatar" class="initials-avatar">A</div>
+                    </div>
+                    <div class="student-info">
+                        <h2 id="detail-name">Student Name</h2>
+                        <p id="detail-reg-no">Reg No: N/A</p>
+                        <p>RFID UID: <span id="detail-uid">-</span></p>
+                        <p>Department: <span id="detail-department">-</span></p>
+                        <p>Year: <span id="detail-year">-</span></p>
+                        <p>Section: <span id="detail-section">-</span></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary close-modal"><i class="fas fa-times"></i> Close</button>
+            </div>
+        </div>
+    `;
+    
+    // Add styles for the new elements
+    const style = document.createElement('style');
+    style.textContent = `
+        .student-profile {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+        .student-image-container {
+            width: 100px;
+            height: 100px;
+            margin-right: 20px;
+            border-radius: 50%;
+            overflow: hidden;
+            background-color: #f0f0f0;
+            position: relative;
+        }
+        #student-profile-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .initials-avatar {
+            display: none;
+            width: 100%;
+            height: 100%;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: bold;
+            color: white;
+            background-color: #4361ee;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .student-info {
+            flex: 1;
+        }
+        .student-info h2 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+        .student-info p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+    `;
+    
+    document.head.appendChild(style);
+    document.body.appendChild(modal);
+    
+    // Add event listeners for closing the modal
+    const closeButtons = modal.querySelectorAll('.close-modal');
+    closeButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            closeModal('student-details-modal');
+        });
     });
 }
 
@@ -965,6 +1334,7 @@ function registerStudent(studentData) {
         return response.json();
     })
     .then(data => {
+        // Standard notification is still shown for compatibility
         showNotification(`Student ${studentData.name} registered successfully!`);
         
         // Reset form and close modal
@@ -978,6 +1348,11 @@ function registerStudent(studentData) {
         if (document.getElementById('dashboard').classList.contains('active')) {
             loadDashboardData();
         }
+        
+        // Show celebratory animation with confetti if available
+        if (typeof showCelebration === 'function') {
+            showCelebration(studentData.name);
+        }
     })
     .catch(error => {
         console.error('Error registering student:', error);
@@ -989,6 +1364,23 @@ function registerStudent(studentData) {
  * View student details
  */
 function viewStudentDetails(uid) {
+    // Create student details modal if it doesn't exist
+    if (!document.getElementById('student-details-modal')) {
+        createStudentDetailsModal();
+        
+        // Add a small delay to ensure DOM is updated before continuing
+        setTimeout(() => {
+            fetchAndDisplayStudentDetails(uid);
+        }, 100);
+    } else {
+        fetchAndDisplayStudentDetails(uid);
+    }
+}
+
+/**
+ * Fetch and display student details in the modal
+ */
+function fetchAndDisplayStudentDetails(uid) {
     fetch(`${API_BASE_URL}/students/${uid}`)
         .then(response => {
             if (!response.ok) {
@@ -997,13 +1389,45 @@ function viewStudentDetails(uid) {
             return response.json();
         })
         .then(student => {
-            // Update modal with student details
-            document.getElementById('detail-name').textContent = student.name;
-            document.getElementById('detail-reg-no').textContent = `Reg No: ${student.reg_no}`;
-            document.getElementById('detail-uid').textContent = student.uid;
-            document.getElementById('detail-department').textContent = student.department;
-            document.getElementById('detail-year').textContent = student.year;
-            document.getElementById('detail-section').textContent = student.section;
+            // Ensure all elements exist before manipulating them
+            const detailNameEl = document.getElementById('detail-name');
+            const detailRegNoEl = document.getElementById('detail-reg-no');
+            const detailUidEl = document.getElementById('detail-uid');
+            const detailDeptEl = document.getElementById('detail-department');
+            const detailYearEl = document.getElementById('detail-year');
+            const detailSectionEl = document.getElementById('detail-section');
+            const profileImgEl = document.getElementById('student-profile-image');
+            const initialsAvatarEl = document.getElementById('student-initials-avatar');
+            
+            // Safely update the elements if they exist
+            if (detailNameEl) detailNameEl.textContent = student.name;
+            if (detailRegNoEl) detailRegNoEl.textContent = `Reg No: ${student.reg_no || 'N/A'}`;
+            if (detailUidEl) detailUidEl.textContent = student.uid;
+            if (detailDeptEl) detailDeptEl.textContent = student.department || 'N/A';
+            if (detailYearEl) detailYearEl.textContent = student.year || 'N/A';
+            if (detailSectionEl) detailSectionEl.textContent = student.section || 'N/A';
+            
+            // Update student profile image if elements exist
+            if (profileImgEl && initialsAvatarEl) {
+                if (student.image_url) {
+                    profileImgEl.src = student.image_url;
+                    profileImgEl.alt = `${student.name}'s profile picture`;
+                    profileImgEl.style.display = 'block';
+                    initialsAvatarEl.style.display = 'none';
+                } else {
+                    // Use default image with first letter of student's name
+                    const firstLetter = student.name ? student.name.charAt(0).toUpperCase() : '?';
+                    profileImgEl.style.display = 'none'; // Hide the img element
+                    
+                    initialsAvatarEl.textContent = firstLetter;
+                    initialsAvatarEl.style.display = 'flex'; // Show the initials avatar
+                    
+                    // Set a consistent background color based on the name
+                    const colorIndex = student.name.charCodeAt(0) % 5;
+                    const colors = ['#4361ee', '#3a0ca3', '#f72585', '#7209b7', '#4cc9f0'];
+                    initialsAvatarEl.style.backgroundColor = colors[colorIndex];
+                }
+            }
             
             // Open the modal
             openModal('student-details-modal');

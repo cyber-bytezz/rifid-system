@@ -4,29 +4,30 @@ import RPi.GPIO as GPIO
 import os
 import time
 
-# Paths
+# Setup paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_DIR, "database", "students.db")
 
 # RFID Reader
 reader = SimpleMFRC522()
 
-# Buzzer setup on GPIO 18 (Pin 12)
+# Buzzer on GPIO 18
 BUZZER_PIN = 18
-if GPIO.getmode() is None:
-    GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
+GPIO.cleanup()  # ✅ Reset GPIO on startup
+GPIO.setmode(GPIO.BCM)
 GPIO.setup(BUZZER_PIN, GPIO.OUT)
 
 def beep(duration=0.4):
+    print(f"[BEEP] for {duration}s")
     GPIO.output(BUZZER_PIN, GPIO.HIGH)
     time.sleep(duration)
     GPIO.output(BUZZER_PIN, GPIO.LOW)
 
-# Register process
 try:
     print("\n📢 Scan the student's RFID card...")
     uid, _ = reader.read()
+    beep(0.15)  # ✅ Confirm scan
     uid = str(uid)
     print(f"🔗 UID detected: {uid}\n")
 
@@ -58,5 +59,3 @@ finally:
     GPIO.cleanup()
     if 'conn' in locals():
         conn.close()
-
-

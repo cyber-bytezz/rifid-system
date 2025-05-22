@@ -5,14 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RFID Attendance System</title>
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/animations.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Animation libraries -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
 </head>
 <body>
     <div class="container">
         <nav class="sidebar">
             <div class="logo">
-                <i class="fas fa-id-card"></i>
-                <h2>RFID System</h2>
+                <img src="images/logo.png" alt="RFID System" class="logo-image">
             </div>
             <ul class="nav-links">
                 <li class="active" data-page="dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</li>
@@ -30,6 +34,9 @@
                         <span id="current-date"></span>
                         <span id="current-time"></span>
                     </div>
+                    <button id="settings-button" class="settings-button" title="Settings">
+                        <i class="fas fa-cog"></i>
+                    </button>
                 </div>
             </header>
             
@@ -247,10 +254,75 @@
         </main>
     </div>
     
-    <div id="notification" class="notification">
+    <!-- Original notification system - hidden but kept for backward compatibility -->
+    <div id="notification" class="notification" style="display:none;">
         <div class="notification-content">
             <i class="fas fa-bell"></i>
             <span id="notification-message"></span>
+        </div>
+    </div>
+    
+    <!-- Enhanced notification system -->
+    <div id="notification-center" class="notification-center"></div>
+    
+    <!-- Settings Panel -->
+    <div id="settings-panel" class="settings-panel">
+        <div class="settings-header">
+            <h3>Settings</h3>
+            <button id="close-settings" class="close-button">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="settings-content">
+            <div class="settings-section">
+                <h4>Appearance</h4>
+                <div class="setting-item">
+                    <label for="dark-mode-toggle">Dark Mode</label>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="dark-mode-toggle">
+                        <span class="toggle-slider"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <h4>User Experience</h4>
+                <div class="setting-item">
+                    <label for="animations-toggle">Animations</label>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="animations-toggle" checked>
+                        <span class="toggle-slider"></span>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <label for="sound-toggle">Sound Effects</label>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="sound-toggle" checked>
+                        <span class="toggle-slider"></span>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <label for="refresh-interval">Auto Refresh (seconds)</label>
+                    <div class="range-slider">
+                        <input type="range" id="refresh-interval" min="0" max="60" value="30">
+                        <span id="refresh-value">30s</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <h4>System Status</h4>
+                <div class="status-items">
+                    <div class="status-item">
+                        <span>Backend API</span>
+                        <div class="status-indicator online"></div>
+                    </div>
+                    <div class="status-item">
+                        <span>RFID Reader</span>
+                        <div class="status-indicator online"></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -355,7 +427,96 @@
         </div>
     </div>
     
+    <!-- Celebration Animation Container -->
+    <div id="celebration-container" class="celebration-container">
+        <div class="celebration-content animate__animated">
+            <div class="celebration-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h2 class="celebration-title">Success!</h2>
+            <p class="celebration-message">Student registered successfully!</p>
+            <button id="celebration-close" class="celebration-button">Continue</button>
+        </div>
+        <canvas id="confetti-canvas"></canvas>
+    </div>
+    
+    <!-- Enhanced Notification System -->
+    <div id="notification-center" class="notification-center">
+        <!-- Notifications will be added here dynamically -->
+    </div>
+    
+    <!-- Settings Panel -->
+    <div id="settings-panel" class="settings-panel">
+        <div class="settings-header">
+            <h3><i class="fas fa-cog"></i> System Settings</h3>
+            <button class="settings-close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="settings-body">
+            <div class="settings-section">
+                <h4>Appearance</h4>
+                <div class="setting-item">
+                    <span class="setting-label">Dark Mode</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="dark-mode-toggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">Animations</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="animations-toggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="settings-section">
+                <h4>Notifications</h4>
+                <div class="setting-item">
+                    <span class="setting-label">Sound Effects</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="sound-toggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">Auto Refresh</span>
+                    <div class="refresh-slider-container">
+                        <input type="range" id="refresh-slider" min="5" max="30" step="5" value="10" class="slider">
+                        <span id="refresh-value">10s</span>
+                    </div>
+                </div>
+            </div>
+            <div class="settings-section">
+                <h4>System Status</h4>
+                <div class="system-status-container">
+                    <div class="status-item">
+                        <div class="status-indicator online"></div>
+                        <span>Backend API</span>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-indicator online"></div>
+                        <span>RFID Reader</span>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-indicator offline"></div>
+                        <span>Printer</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="settings-footer">
+            <button class="btn-primary" id="save-settings">Save Settings</button>
+            <button class="btn-cancel" id="reset-settings">Reset Defaults</button>
+        </div>
+    </div>
+    
+    <!-- Sound Effects -->
+    <audio id="success-sound" src="https://assets.mixkit.co/active_storage/sfx/2005/2005-preview.mp3" preload="auto"></audio>
+    <audio id="error-sound" src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3" preload="auto"></audio>
+    <audio id="notification-sound" src="https://assets.mixkit.co/active_storage/sfx/1518/1518-preview.mp3" preload="auto"></audio>
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/app.js"></script>
+    <script src="js/animations.js"></script>
 </body>
 </html>

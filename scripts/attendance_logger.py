@@ -4,20 +4,24 @@ import RPi.GPIO as GPIO
 from datetime import datetime
 import os
 import time
-from scanner_event_queue import set_latest_uid  # 🔥 NEW
+from scanner_event_queue import set_latest_uid
 
+# Setup paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_DIR, "database", "students.db")
+
+# RFID Reader
 reader = SimpleMFRC522()
 
 # Buzzer on GPIO 18
 BUZZER_PIN = 18
-if GPIO.getmode() is None:
-    GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
+GPIO.cleanup()  # ✅ Ensures GPIO is not blocked
+GPIO.setmode(GPIO.BCM)
 GPIO.setup(BUZZER_PIN, GPIO.OUT)
 
 def beep(duration=0.3):
+    print(f"[BEEP] for {duration}s")
     GPIO.output(BUZZER_PIN, GPIO.HIGH)
     time.sleep(duration)
     GPIO.output(BUZZER_PIN, GPIO.LOW)
@@ -28,6 +32,7 @@ try:
     while True:
         print("📡 Waiting for RFID scan...")
         uid, _ = reader.read()
+        beep(0.15)  # ✅ Instant feedback
         uid = str(uid)
 
         conn = sqlite3.connect(DB_PATH)
@@ -56,7 +61,7 @@ try:
                 beep(0.5)
         else:
             print("❌ Unregistered card detected. Sending to frontend...")
-            set_latest_uid(uid)  # 🔥 Save for UI
+            set_latest_uid(uid)
             beep(0.3)
 
         conn.close()
