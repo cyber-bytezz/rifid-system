@@ -4,13 +4,13 @@ import RPi.GPIO as GPIO
 from datetime import datetime
 import os
 import time
+from scanner_event_queue import set_latest_uid  # 🔥 NEW
 
-# Setup
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_DIR, "database", "students.db")
 reader = SimpleMFRC522()
 
-# Buzzer on GPIO 18 (Pin 12)
+# Buzzer on GPIO 18
 BUZZER_PIN = 18
 if GPIO.getmode() is None:
     GPIO.setmode(GPIO.BCM)
@@ -55,32 +55,9 @@ try:
                 print(f"✅ {name} marked present at {time_now} on {date}")
                 beep(0.5)
         else:
-            print("❌ Unregistered card!")
-            choice = input("🆕 Do you want to register this UID? (y/n): ").strip().lower()
-            if choice == "y":
-                name = input("👤 Enter student name: ")
-                reg_no = input("🎓 Enter register number: ")
-                department = input("🏛️ Enter department: ")
-                year = input("📘 Enter year (e.g., 2nd): ")
-                section = input("🏫 Enter section (e.g., CSE-A): ")
-
-                cursor.execute('''
-                    INSERT INTO students (uid, name, reg_no, department, year, section)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                ''', (uid, name, reg_no, department, year, section))
-                conn.commit()
-                print(f"✅ {name} registered successfully!")
-
-                now = datetime.now()
-                date = now.strftime("%Y-%m-%d")
-                time_now = now.strftime("%H:%M:%S")
-                cursor.execute('''
-                    INSERT INTO attendance (uid, name, date, time, status)
-                    VALUES (?, ?, ?, ?, ?)
-                ''', (uid, name, date, time_now, "Present"))
-                conn.commit()
-                print(f"🟢 {name} marked present at {time_now} on {date}")
-                beep(0.6)
+            print("❌ Unregistered card detected. Sending to frontend...")
+            set_latest_uid(uid)  # 🔥 Save for UI
+            beep(0.3)
 
         conn.close()
         print("-----\n")

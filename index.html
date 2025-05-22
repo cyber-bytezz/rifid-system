@@ -263,10 +263,16 @@
             </div>
             <div class="modal-body">
                 <form id="student-registration-form">
-                    <div class="form-group">
+                    <div class="form-group full-width">
                         <label for="reg-uid">RFID UID:</label>
-                        <input type="text" id="reg-uid" name="uid" required>
-                        <small>RFID card number (scan or enter manually)</small>
+                        <div class="uid-input-container">
+                            <input type="text" id="reg-uid" name="uid" required>
+                            <button type="button" id="scan-rfid-btn" class="btn-scan">
+                                <i class="fas fa-wifi"></i> Scan
+                            </button>
+                        </div>
+                        <small>Scan RFID card or enter UID manually</small>
+                        <div id="scan-status" class="scan-status"></div>
                     </div>
                     <div class="form-group">
                         <label for="reg-name">Full Name:</label>
@@ -307,8 +313,8 @@
     <div id="student-details-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Student Details</h3>
-                <span class="close-modal" data-modal="student-details-modal">&times;</span>
+                <h3><i class="fas fa-id-card"></i> Student Details</h3>
+                <button type="button" class="close-modal" data-modal="student-details-modal">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="student-info">
@@ -319,19 +325,23 @@
                         </div>
                         <div class="student-details">
                             <div class="detail-item">
-                                <span class="detail-label">RFID UID:</span>
+                                <span class="detail-label uid">RFID UID:</span>
                                 <span id="detail-uid" class="detail-value">XXX</span>
                             </div>
                             <div class="detail-item">
-                                <span class="detail-label">Department:</span>
+                                <span class="detail-label name">Register No:</span>
+                                <span id="detail-reg-no" class="detail-value">XXX</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label course">Department:</span>
                                 <span id="detail-department" class="detail-value">XXX</span>
                             </div>
                             <div class="detail-item">
-                                <span class="detail-label">Year:</span>
+                                <span class="detail-label year">Year:</span>
                                 <span id="detail-year" class="detail-value">XXX</span>
                             </div>
                             <div class="detail-item">
-                                <span class="detail-label">Section:</span>
+                                <span class="detail-label reg-date">Section:</span>
                                 <span id="detail-section" class="detail-value">XXX</span>
                             </div>
                         </div>

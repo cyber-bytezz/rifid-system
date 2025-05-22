@@ -4,6 +4,7 @@ from pydantic import BaseModel
 import sqlite3
 import os
 from datetime import datetime
+from scripts.scanner_event_queue import get_latest_uid
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_DIR, "database", "students.db")
@@ -149,3 +150,8 @@ def delete_student(uid: str):
         raise HTTPException(status_code=500, detail=f"Failed to delete: {str(e)}")
     finally:
         conn.close()
+
+@app.get("/latest-uid")
+def get_latest_scanned_uid():
+    """Get the latest UID scanned by the RFID reader"""
+    return get_latest_uid()

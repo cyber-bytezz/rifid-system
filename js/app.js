@@ -13,7 +13,7 @@
  */
 
 // ======= Global Configuration =======
-const API_BASE_URL = 'http://192.168.22.201:8000';
+const API_BASE_URL = 'http://192.168.21.201:8000';
 const REFRESH_INTERVAL = 10000; // 10 seconds
 
 // ======= Global State =======
@@ -226,28 +226,57 @@ function updateTodayAttendanceTable() {
 }
 
 /**
- * Creates or updates the department distribution chart
+ * Creates or updates the year-wise student distribution chart
  */
 function updateDepartmentChart() {
     if (!studentsData.length) return;
     
-    // Get all unique departments
-    const departments = {};
+    // Get all student counts by year
+    const yearCounts = {
+        '1': 0,
+        '2': 0,
+        '3': 0,
+        '4': 0
+    };
+    
+    // Count students in each year
     studentsData.forEach(student => {
-        if (!student.department) return;
-        
-        if (departments[student.department]) {
-            departments[student.department]++;
-        } else {
-            departments[student.department] = 1;
+        if (student.year && yearCounts.hasOwnProperty(student.year)) {
+            yearCounts[student.year]++;
         }
     });
     
-    const labels = Object.keys(departments);
-    const data = Object.values(departments);
+    const yearLabels = {
+        '1': '1st Year',
+        '2': '2nd Year',
+        '3': '3rd Year',
+        '4': '4th Year'
+    };
     
-    // Generate random colors for each department
-    const colors = labels.map(() => getRandomColor());
+    const labels = Object.keys(yearCounts).map(year => yearLabels[year]);
+    const data = Object.values(yearCounts);
+    
+    // Create a professional color scheme for the years
+    const colorScheme = [
+        'rgba(67, 97, 238, 0.8)',    // Primary blue
+        'rgba(56, 182, 255, 0.8)',   // Accent blue
+        'rgba(0, 200, 150, 0.8)',    // Success green
+        'rgba(255, 209, 102, 0.8)'   // Warning yellow
+    ];
+    
+    // Generate hover colors (slightly brighter)
+    const hoverColors = [
+        'rgba(100, 130, 248, 0.85)',
+        'rgba(86, 202, 255, 0.85)',
+        'rgba(20, 220, 170, 0.85)',
+        'rgba(255, 219, 132, 0.85)'
+    ];
+    
+    // Update title of the chart section
+    const chartTitle = document.querySelector('.chart-card h3');
+    if (chartTitle && chartTitle.textContent.includes('Department')) {
+        chartTitle.innerHTML = '<i class="fas fa-user-graduate"></i> Student Distribution by Year';
+    }
     
     const ctx = document.getElementById('department-chart').getContext('2d');
     
@@ -256,26 +285,119 @@ function updateDepartmentChart() {
     }
     
     departmentChart = new Chart(ctx, {
-        type: 'pie',
+        type: 'doughnut',
         data: {
             labels: labels,
             datasets: [{
                 data: data,
-                backgroundColor: colors,
+                backgroundColor: colorScheme,
+                hoverBackgroundColor: hoverColors,
                 borderColor: 'white',
-                borderWidth: 1
+                borderWidth: 2,
+                borderRadius: 4,
+                hoverBorderWidth: 0,
+                hoverOffset: 10,
+                spacing: 2,
+                weight: 1
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            cutout: '65%',
             plugins: {
                 legend: {
                     position: 'right',
+                    labels: {
+                        font: {
+                            family: 'Segoe UI',
+                            size: 13,
+                            weight: 500
+                        },
+                        padding: 15,
+                        usePointStyle: true,
+                        pointStyle: 'circle'
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(20, 30, 50, 0.85)',
+                    titleFont: {
+                        family: 'Segoe UI',
+                        size: 14,
+                        weight: 'bold'
+                    },
+                    bodyFont: {
+                        family: 'Segoe UI',
+                        size: 13
+                    },
+                    padding: 12,
+                    cornerRadius: 8,
+                    caretSize: 8,
+                    displayColors: true,
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                            return ` ${label}: ${value} students (${percentage}%)`;
+                        }
+                    }
                 }
+            },
+            animation: {
+                animateScale: true,
+                animateRotate: true,
+                duration: 1000,
+                easing: 'easeOutCubic'
             }
         }
     });
+
+    // Add center text if not already present
+    const chartContainer = document.getElementById('department-chart').parentNode;
+    if (!document.getElementById('chart-center-text')) {
+        const totalStudents = data.reduce((a, b) => a + b, 0);
+        
+        const centerTextDiv = document.createElement('div');
+        centerTextDiv.id = 'chart-center-text';
+        centerTextDiv.innerHTML = `
+            <div class="total-number">${totalStudents}</div>
+            <div class="total-label">Total Students</div>
+        `;
+        chartContainer.appendChild(centerTextDiv);
+        
+        // Add CSS for center text positioning
+        const style = document.createElement('style');
+        style.textContent = `
+            .chart-container {
+                position: relative;
+            }
+            #chart-center-text {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                text-align: center;
+                pointer-events: none;
+            }
+            #chart-center-text .total-number {
+                font-size: 24px;
+                font-weight: 700;
+                color: var(--dark-color);
+            }
+            #chart-center-text .total-label {
+                font-size: 13px;
+                color: var(--gray-color);
+                font-weight: 500;
+            }
+        `;
+        document.head.appendChild(style);
+    } else {
+        // Update existing center text
+        const totalStudents = data.reduce((a, b) => a + b, 0);
+        document.querySelector('#chart-center-text .total-number').textContent = totalStudents;
+    }
 }
 
 /**
@@ -731,7 +853,59 @@ function closeModal(modalId) {
  */
 function setupRegistrationForm() {
     const form = document.getElementById('student-registration-form');
+    let pollingInterval = null;
+    let lastScannedUid = null;
     
+    // Set up scan button
+    document.getElementById('scan-rfid-btn').addEventListener('click', function() {
+        const scanStatusEl = document.getElementById('scan-status');
+        const uidInput = document.getElementById('reg-uid');
+        
+        // Update UI to show scanning state
+        this.disabled = true;
+        scanStatusEl.textContent = 'Waiting for card scan...';
+        scanStatusEl.className = 'scan-status scanning';
+        
+        // Start polling for new UID
+        if (pollingInterval) clearInterval(pollingInterval);
+        
+        pollingInterval = setInterval(() => {
+            fetch(`${API_BASE_URL}/latest-uid`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.uid && data.uid !== lastScannedUid) {
+                        lastScannedUid = data.uid;
+                        uidInput.value = data.uid;
+                        scanStatusEl.textContent = `Card detected! UID: ${data.uid}`;
+                        scanStatusEl.className = 'scan-status success';
+                        clearInterval(pollingInterval);
+                        pollingInterval = null;
+                        this.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking for scanned card:', error);
+                    scanStatusEl.textContent = 'Error connecting to scanner';
+                    scanStatusEl.className = 'scan-status error';
+                    clearInterval(pollingInterval);
+                    pollingInterval = null;
+                    this.disabled = false;
+                });
+        }, 1000);
+        
+        // Stop polling after 30 seconds if no card detected
+        setTimeout(() => {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+                this.disabled = false;
+                scanStatusEl.textContent = 'No card detected. Try again.';
+                scanStatusEl.className = 'scan-status error';
+            }
+        }, 30000);
+    });
+    
+    // Form submission
     document.getElementById('submit-registration').addEventListener('click', () => {
         // Get form data
         const uid = document.getElementById('reg-uid').value.trim();
@@ -754,6 +928,19 @@ function setupRegistrationForm() {
             department,
             year,
             section
+        });
+    });
+    
+    // Reset polling when modal is closed
+    document.querySelectorAll('[data-modal="registration-modal"]').forEach(element => {
+        element.addEventListener('click', () => {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+                document.getElementById('scan-rfid-btn').disabled = false;
+                document.getElementById('scan-status').textContent = '';
+                document.getElementById('scan-status').className = 'scan-status';
+            }
         });
     });
 }
@@ -839,34 +1026,34 @@ function confirmDeleteStudent(uid, name) {
         modal.innerHTML = `
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>Confirm Deletion</h3>
-                    <span class="close-modal">&times;</span>
+                    <h3><i class="fas fa-trash-alt"></i> Confirm Deletion</h3>
+                    <button type="button" class="close-modal">&times;</button>
                 </div>
                 <div class="modal-body">
                     <p>Are you sure you want to delete <span id="student-to-delete"></span>?</p>
                     <p class="warning">This will permanently remove the student and all their attendance records.</p>
                 </div>
                 <div class="modal-footer">
-                    <button id="cancel-delete" class="btn-cancel">Cancel</button>
-                    <button id="confirm-delete" class="btn-danger">Delete</button>
+                    <button id="cancel-delete" class="btn-cancel"><i class="fas fa-times"></i> Cancel</button>
+                    <button id="confirm-delete" class="btn-danger"><i class="fas fa-trash"></i> Delete</button>
                 </div>
             </div>
         `;
         document.body.appendChild(modal);
-        
-        // Set up event listeners for the modal
-        document.querySelector('.close-modal').addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
-        
-        document.getElementById('cancel-delete').addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
     }
     
     const modal = document.getElementById('delete-modal');
     document.getElementById('student-to-delete').textContent = `${name} (${uid})`;
-    modal.style.display = 'block';
+    
+    // Update event listeners every time to avoid duplicates
+    const closeButtons = modal.querySelectorAll('.close-modal, #cancel-delete');
+    closeButtons.forEach(button => {
+        const newButton = button.cloneNode(true);
+        button.parentNode.replaceChild(newButton, button);
+        newButton.addEventListener('click', () => {
+            closeModal('delete-modal');
+        });
+    });
     
     // Remove any existing event listeners on confirm button
     const confirmButton = document.getElementById('confirm-delete');
@@ -876,8 +1063,11 @@ function confirmDeleteStudent(uid, name) {
     // Add new event listener for this specific deletion
     newConfirmButton.addEventListener('click', () => {
         deleteStudent(uid, name);
-        modal.style.display = 'none';
+        closeModal('delete-modal');
     });
+    
+    // Open the modal using the same method as other modals
+    openModal('delete-modal');
 }
 
 /**
