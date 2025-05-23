@@ -13,7 +13,7 @@
  */
 
 // ======= Global Configuration =======
-const API_BASE_URL = 'http://192.168.21.201:8000';
+const API_BASE_URL = 'http://192.168.21.202:8000';
 const REFRESH_INTERVAL = 5000; // 10 seconds
 
 // ======= Global State =======
